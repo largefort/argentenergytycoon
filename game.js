@@ -1,6 +1,15 @@
 class ArgentEnergyTycoon {
     constructor() {
         this.currentSaveSlot = null;
+        this.currentAchievementFilter = 'all';
+        this.autoSaveInterval = 10000;
+        this.autoSaveTimer = null;
+        this.sessionStartTime = Date.now();
+        this.settings = {
+            clickEffects: true,
+            soundEffects: true,
+            autoSave: 10
+        };
         this.resources = {
             argent: 10,
             souls: 10
@@ -1003,7 +1012,7 @@ class ArgentEnergyTycoon {
         this.lastBuildTime = 0;
         this.consecutiveBuilds = 0;
         
-        this.initTitleScreen();
+        this.initIntroScreen();
     }
     
     detectMobile() {
@@ -1012,9 +1021,105 @@ class ArgentEnergyTycoon {
                (navigator.maxTouchPoints > 0);
     }
     
+    initIntroScreen() {
+        this.createIntroParticles();
+        this.setupIntroEvents();
+        this.startIntroSequence();
+    }
+    
+    createIntroParticles() {
+        const particlesContainer = document.getElementById('intro-particles');
+        if (!particlesContainer) return;
+        
+        // Create 20 floating particles
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 6 + 's';
+            particle.style.animationDuration = (4 + Math.random() * 4) + 's';
+            
+            // Random particle colors
+            const colors = ['#ff3333', '#ff8800', '#ff6600', '#cc0000'];
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.boxShadow = `0 0 10px ${particle.style.background}`;
+            
+            particlesContainer.appendChild(particle);
+        }
+    }
+    
+    setupIntroEvents() {
+        const skipButton = document.getElementById('intro-skip');
+        if (skipButton) {
+            skipButton.addEventListener('click', () => {
+                this.skipIntro();
+            });
+        }
+        
+        // Auto-skip after 8 seconds
+        setTimeout(() => {
+            this.skipIntro();
+        }, 8000);
+    }
+    
+    startIntroSequence() {
+        const introScreen = document.getElementById('intro-screen');
+        const titleScreen = document.getElementById('title-screen');
+        
+        if (introScreen) {
+            introScreen.style.display = 'flex';
+        }
+        if (titleScreen) {
+            titleScreen.style.display = 'none';
+        }
+        
+        // Play intro sound effect if available
+        this.playIntroSound();
+        
+        // Add screen shake effect during lightning
+        setTimeout(() => {
+            this.addScreenShake();
+        }, 4000);
+    }
+    
+    skipIntro() {
+        const introScreen = document.getElementById('intro-screen');
+        const titleScreen = document.getElementById('title-screen');
+        
+        if (introScreen) {
+            introScreen.classList.add('intro-fade-out');
+            setTimeout(() => {
+                introScreen.style.display = 'none';
+                if (titleScreen) {
+                    titleScreen.style.display = 'flex';
+                }
+            }, 1000);
+        }
+    }
+    
+    playIntroSound() {
+        // Placeholder for intro sound effect
+        // Could play a hellish ambient sound or dramatic music
+        if (this.settings.soundEffects) {
+            // Implementation would go here
+            console.log('Playing intro sound effect...');
+        }
+    }
+    
+    addScreenShake() {
+        const introContent = document.querySelector('.intro-content');
+        if (introContent) {
+            introContent.style.animation = 'screenShake 0.5s ease-out';
+            setTimeout(() => {
+                introContent.style.animation = '';
+            }, 500);
+        }
+    }
+    
     initTitleScreen() {
         this.setupTitleScreenEvents();
-        this.showTitleScreen();
+        this.setupSettingsScreen();
+        // Don't show title screen immediately - intro will handle it
     }
     
     setupTitleScreenEvents() {
@@ -1029,6 +1134,62 @@ class ArgentEnergyTycoon {
         document.getElementById('back-to-title').addEventListener('click', () => {
             this.showTitleScreen();
         });
+        
+        // Settings button for browser edition
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                this.showSettingsScreen();
+            });
+        }
+    }
+    
+    setupSettingsScreen() {
+        const backFromSettings = document.getElementById('back-to-title-from-settings');
+        if (backFromSettings) {
+            backFromSettings.addEventListener('click', () => {
+                this.showTitleScreen();
+            });
+        }
+        
+        // Fullscreen toggle
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
+        if (fullscreenToggle) {
+            fullscreenToggle.addEventListener('click', () => {
+                this.toggleFullscreen();
+            });
+        }
+        
+        // Auto-save interval
+        const autoSaveSelect = document.getElementById('auto-save');
+        if (autoSaveSelect) {
+            autoSaveSelect.addEventListener('change', (e) => {
+                this.autoSaveInterval = parseInt(e.target.value) * 1000;
+                this.restartAutoSave();
+            });
+        }
+    }
+    
+    showSettingsScreen() {
+        document.getElementById('title-screen').style.display = 'none';
+        document.getElementById('settings-screen').style.display = 'flex';
+        document.getElementById('save-slot-screen').style.display = 'none';
+        document.getElementById('game-container').style.display = 'none';
+    }
+    
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+    
+    restartAutoSave() {
+        if (this.autoSaveTimer) {
+            clearInterval(this.autoSaveTimer);
+        }
+        this.autoSaveTimer = setInterval(() => this.saveGame(), this.autoSaveInterval || 10000);
     }
     
     showTitleScreen() {
@@ -1112,10 +1273,13 @@ class ArgentEnergyTycoon {
     }
     
     init() {
+        this.loadSettings();
         this.setupEventListeners();
         this.setupNavigation();
         this.setupInfiniteScroll();
         this.setupAscensionSystem();
+        this.setupBrowserFeatures();
+        this.setupKeyboardShortcuts();
         this.renderFacilityGrid();
         this.renderShop();
         this.renderUpgrades();
@@ -1123,6 +1287,7 @@ class ArgentEnergyTycoon {
         this.renderRecentAchievements();
         this.renderAscensionSystem();
         this.startGameLoop();
+        this.startSessionTimer();
     }
     
     setupNavigation() {
@@ -1259,7 +1424,7 @@ class ArgentEnergyTycoon {
         });
         
         // Auto-save
-        setInterval(() => this.saveGame(), 10000);
+        this.restartAutoSave();
         
         // Prevent zoom on double tap
         if (this.isMobile) {
@@ -1435,10 +1600,10 @@ class ArgentEnergyTycoon {
     
     tryBuyUpgrade(upgradeType) {
         const upgradeData = this.upgradeTypes[upgradeType];
-        if (!upgradeData) return;
+        if (!upgradeData) return false;
         
         const currentLevel = this.upgrades[upgradeType] || 0;
-        if (currentLevel >= upgradeData.maxLevel) return;
+        if (currentLevel >= upgradeData.maxLevel) return false;
         
         const cost = {
             argent: upgradeData.cost.argent * Math.pow(2, currentLevel),
@@ -1454,7 +1619,9 @@ class ArgentEnergyTycoon {
             this.updateProduction();
             this.updateDisplay();
             this.renderUpgrades();
+            return true;
         }
+        return false;
     }
     
     generateRandomUpgrade() {
@@ -1784,7 +1951,17 @@ class ArgentEnergyTycoon {
         const achievementsList = document.getElementById('achievements-list');
         achievementsList.innerHTML = '';
         
-        this.achievementList.forEach(achievement => {
+        let filteredAchievements = this.achievementList;
+        
+        if (this.currentAchievementFilter === 'completed') {
+            filteredAchievements = this.achievementList.filter(achievement => 
+                this.achievements.includes(achievement.id));
+        } else if (this.currentAchievementFilter === 'incomplete') {
+            filteredAchievements = this.achievementList.filter(achievement => 
+                !this.achievements.includes(achievement.id));
+        }
+        
+        filteredAchievements.forEach(achievement => {
             const item = document.createElement('div');
             item.className = 'achievement';
             
@@ -1805,6 +1982,8 @@ class ArgentEnergyTycoon {
     
     renderRecentAchievements() {
         const recentList = document.getElementById('recent-achievements-list');
+        if (!recentList) return;
+        
         recentList.innerHTML = '';
         
         if (this.recentAchievements.length === 0) {
@@ -1847,6 +2026,8 @@ class ArgentEnergyTycoon {
     }
     
     showClickEffect(text, x, y) {
+        if (!this.settings.clickEffects) return;
+        
         const effect = document.getElementById('click-effect');
         effect.innerHTML = text.replace(/\n/g, '<br>');
         effect.style.left = Math.min(x, window.innerWidth - 100) + 'px';
@@ -1881,187 +2062,251 @@ class ArgentEnergyTycoon {
         return Math.floor(num).toString();
     }
     
-    setupAscensionSystem() {
-        const ascendButton = document.getElementById('ascend-button');
-        if (ascendButton) {
-            ascendButton.addEventListener('click', () => {
-                this.performAscension();
+    setupBrowserFeatures() {
+        // Header buttons
+        const saveButton = document.getElementById('save-button');
+        const menuButton = document.getElementById('menu-button');
+        
+        if (saveButton) {
+            saveButton.addEventListener('click', () => {
+                this.saveGame();
+                this.showNotification('Game saved successfully!');
+            });
+        }
+        
+        if (menuButton) {
+            menuButton.addEventListener('click', () => {
+                this.showTitleScreen();
+            });
+        }
+        
+        // Quick action buttons
+        const collectAllBtn = document.getElementById('collect-all');
+        const autoBuildBtn = document.getElementById('auto-build');
+        const massUpgradeBtn = document.getElementById('mass-upgrade');
+        
+        if (collectAllBtn) {
+            collectAllBtn.addEventListener('click', () => {
+                this.collectAllFacilities();
+            });
+        }
+        
+        if (autoBuildBtn) {
+            autoBuildBtn.addEventListener('click', () => {
+                this.autoBuildFacilities();
+            });
+        }
+        
+        if (massUpgradeBtn) {
+            massUpgradeBtn.addEventListener('click', () => {
+                this.massUpgradeFacilities();
+            });
+        }
+        
+        // Achievement filters
+        const filterButtons = document.querySelectorAll('.filter-button');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                this.setAchievementFilter(button.dataset.filter);
+            });
+        });
+        
+        // Settings functionality
+        const clickEffectsToggle = document.getElementById('click-effects');
+        const soundEffectsToggle = document.getElementById('sound-effects');
+        
+        if (clickEffectsToggle) {
+            clickEffectsToggle.addEventListener('change', (e) => {
+                this.settings.clickEffects = e.target.checked;
+                this.saveSettings();
+            });
+        }
+        
+        if (soundEffectsToggle) {
+            soundEffectsToggle.addEventListener('change', (e) => {
+                this.settings.soundEffects = e.target.checked;
+                this.saveSettings();
             });
         }
     }
     
-    canAscend() {
-        const nextRank = this.hellRanks[this.ascension.currentRank + 1];
-        if (!nextRank) return false;
-        
-        return this.ascension.totalArgentEverEarned >= nextRank.requirements.argent &&
-               this.ascension.totalSoulsEverEarned >= nextRank.requirements.souls &&
-               this.ascension.totalFacilitiesBuilt >= nextRank.requirements.facilities;
-    }
-    
-    performAscension() {
-        if (!this.canAscend()) return;
-        
-        // Increment rank
-        this.ascension.currentRank++;
-        this.ascension.ascensionCount++;
-        
-        // Update permanent bonuses
-        const currentRankData = this.hellRanks[this.ascension.currentRank];
-        this.ascension.permanentBonuses = {
-            productionMultiplier: currentRankData.bonuses.productionMultiplier,
-            costReduction: currentRankData.bonuses.costReduction,
-            startingResources: { 
-                argent: currentRankData.bonuses.startingArgent, 
-                souls: currentRankData.bonuses.startingSouls 
-            }
-        };
-        
-        // Reset game state
-        this.resources = {
-            argent: currentRankData.bonuses.startingArgent,
-            souls: currentRankData.bonuses.startingSouls
-        };
-        
-        this.facilities = [];
-        this.upgrades = {};
-        this.randomUpgrades = [];
-        
-        // Keep ascension progress and achievements
-        this.updateProduction();
-        this.renderFacilityGrid();
-        this.renderShop();
-        this.renderUpgrades();
-        this.renderAscensionSystem();
-        this.updateDisplay();
-        
-        // Show ascension notification
-        this.showClickEffect(`Ascended to ${currentRankData.name}!`, window.innerWidth / 2, 100);
-        
-        // Save progress
-        this.saveGame();
-    }
-    
-    updateAscensionProgress() {
-        // Track lifetime stats
-        this.ascension.totalArgentEverEarned = Math.max(this.ascension.totalArgentEverEarned, this.resources.argent);
-        this.ascension.totalSoulsEverEarned = Math.max(this.ascension.totalSoulsEverEarned, this.resources.souls);
-        this.ascension.totalFacilitiesBuilt = Math.max(this.ascension.totalFacilitiesBuilt, this.facilities.filter(f => f !== null).length);
-    }
-    
-    renderAscensionSystem() {
-        const currentRankDisplay = document.getElementById('current-rank-display');
-        const ascensionProgressFill = document.getElementById('ascension-progress-fill');
-        const ascensionProgressText = document.getElementById('ascension-progress-text');
-        const productionMultiplier = document.getElementById('production-multiplier');
-        const costReduction = document.getElementById('cost-reduction');
-        const startingResources = document.getElementById('starting-resources');
-        const ascendButton = document.getElementById('ascend-button');
-        const nextRankName = document.getElementById('next-rank-name');
-        const energyRequirement = document.getElementById('energy-requirement');
-        const soulsRequirement = document.getElementById('souls-requirement');
-        const facilitiesRequirement = document.getElementById('facilities-requirement');
-        const ranksGrid = document.getElementById('ranks-grid');
-        
-        if (!currentRankDisplay) return; // Not on browser version
-        
-        const currentRank = this.hellRanks[this.ascension.currentRank];
-        const nextRank = this.hellRanks[this.ascension.currentRank + 1];
-        
-        // Update current rank display
-        currentRankDisplay.textContent = currentRank.name;
-        
-        // Update benefits
-        productionMultiplier.textContent = `${this.ascension.permanentBonuses.productionMultiplier.toFixed(2)}x`;
-        costReduction.textContent = `${this.ascension.permanentBonuses.costReduction}%`;
-        startingResources.textContent = `${this.ascension.permanentBonuses.startingResources.argent.toLocaleString()} Energy, ${this.ascension.permanentBonuses.startingResources.souls.toLocaleString()} Souls`;
-        
-        if (nextRank) {
-            // Update requirements
-            energyRequirement.textContent = nextRank.requirements.argent.toLocaleString();
-            soulsRequirement.textContent = nextRank.requirements.souls.toLocaleString();
-            facilitiesRequirement.textContent = nextRank.requirements.facilities.toLocaleString();
-            
-            nextRankName.textContent = nextRank.name;
-            
-            // Update progress bar
-            const progressPercent = Math.min(
-                (this.ascension.totalArgentEverEarned / nextRank.requirements.argent) * 100,
-                (this.ascension.totalSoulsEverEarned / nextRank.requirements.souls) * 100,
-                (this.ascension.totalFacilitiesBuilt / nextRank.requirements.facilities) * 100
-            );
-            
-            ascensionProgressFill.style.width = `${progressPercent}%`;
-            ascensionProgressText.textContent = `${this.ascension.totalArgentEverEarned.toLocaleString()} / ${nextRank.requirements.argent.toLocaleString()} Argent Energy Required`;
-            
-            // Update ascend button
-            ascendButton.disabled = !this.canAscend();
-        } else {
-            // Max rank reached
-            ascensionProgressFill.style.width = '100%';
-            ascensionProgressText.textContent = 'Maximum Rank Achieved!';
-            ascendButton.disabled = true;
-            ascendButton.innerHTML = '<span>MAXIMUM RANK</span><span>ACHIEVED</span>';
-        }
-        
-        // Render ranks grid
-        ranksGrid.innerHTML = '';
-        this.hellRanks.forEach((rank, index) => {
-            const rankCard = document.createElement('div');
-            rankCard.className = 'rank-card';
-            
-            if (index === this.ascension.currentRank) {
-                rankCard.classList.add('current');
-            } else if (index < this.ascension.currentRank) {
-                rankCard.classList.add('achieved');
-            } else {
-                rankCard.classList.add('locked');
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
             }
             
-            rankCard.innerHTML = `
-                <div class="rank-number">${index + 1}</div>
-                <div class="rank-name">${rank.name}</div>
-                <div class="rank-requirements">
-                    ${rank.requirements.argent.toLocaleString()} Energy<br>
-                    ${rank.requirements.souls.toLocaleString()} Souls<br>
-                    ${rank.requirements.facilities.toLocaleString()} Facilities
-                </div>
-                <div class="rank-bonuses">
-                    ${rank.bonuses.productionMultiplier}x Production<br>
-                    ${rank.bonuses.costReduction}% Cost Reduction<br>
-                    Start: ${rank.bonuses.startingArgent.toLocaleString()}E, ${rank.bonuses.startingSouls.toLocaleString()}S
-                </div>
-            `;
-            
-            ranksGrid.appendChild(rankCard);
+            switch (e.key.toLowerCase()) {
+                case 'f':
+                    this.switchToTab('facilities-tab');
+                    break;
+                case 's':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        this.saveGame();
+                        this.showNotification('Game saved!');
+                    } else {
+                        this.switchToTab('shop-tab');
+                    }
+                    break;
+                case 'u':
+                    this.switchToTab('upgrades-tab');
+                    break;
+                case 'a':
+                    this.switchToTab('achievements-tab');
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    this.collectAllFacilities();
+                    break;
+                case 'escape':
+                    this.showTitleScreen();
+                    break;
+            }
         });
     }
     
-    startGameLoop() {
-        setInterval(() => {
-            // Add passive production
-            this.resources.argent += this.production.argent;
-            this.resources.souls += this.production.souls;
+    switchToTab(tabId) {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabButtons.forEach(button => {
+            button.classList.remove('active');
+            if (button.dataset.tab === tabId) {
+                button.classList.add('active');
+            }
+        });
+        
+        tabContents.forEach(content => {
+            content.classList.remove('active');
+            if (content.id === tabId) {
+                content.classList.add('active');
+            }
+        });
+    }
+    
+    collectAllFacilities() {
+        let totalArgent = 0;
+        let totalSouls = 0;
+        
+        this.facilities.forEach(facility => {
+            if (facility) {
+                const production = this.calculateProduction(facility.type);
+                totalArgent += production.argent * 5; // 5 seconds worth
+                totalSouls += production.souls * 5;
+            }
+        });
+        
+        this.resources.argent += totalArgent;
+        this.resources.souls += totalSouls;
+        
+        if (totalArgent > 0 || totalSouls > 0) {
+            this.showClickEffect(
+                `Collected: +${Math.floor(totalArgent)} Energy, +${Math.floor(totalSouls)} Souls`,
+                window.innerWidth / 2,
+                window.innerHeight / 2
+            );
+        }
+        
+        this.updateDisplay();
+    }
+    
+    autoBuildFacilities() {
+        const facilityTypes = Object.keys(this.facilityTypes);
+        let built = 0;
+        
+        for (let i = 0; i < 5; i++) { // Try to build 5 facilities
+            const randomType = facilityTypes[Math.floor(Math.random() * facilityTypes.length)];
+            const facilityData = this.facilityTypes[randomType];
             
-            // Update ascension progress
-            this.updateAscensionProgress();
-            
-            // Update play time
-            this.playTime = Date.now() - this.gameStartTime;
-            
-            // Track max resources held
-            this.maxResourcesHeld.argent = Math.max(this.maxResourcesHeld.argent || 0, this.resources.argent);
-            this.maxResourcesHeld.souls = Math.max(this.maxResourcesHeld.souls || 0, this.resources.souls);
-            
-            // Check for random upgrade generation
-            this.checkRandomUpgradeGeneration();
-            
+            if (this.resources.argent >= facilityData.cost.argent && 
+                this.resources.souls >= facilityData.cost.souls) {
+                
+                const emptySlot = this.facilities.findIndex(f => f === null);
+                if (emptySlot !== -1) {
+                    this.resources.argent -= facilityData.cost.argent;
+                    this.resources.souls -= facilityData.cost.souls;
+                    
+                    this.facilities[emptySlot] = {
+                        type: randomType,
+                        level: 1,
+                        lastProduced: Date.now()
+                    };
+                    
+                    built++;
+                    
+                    // Scale costs
+                    facilityData.cost.argent = Math.floor(facilityData.cost.argent * 1.5);
+                    facilityData.cost.souls = Math.floor(facilityData.cost.souls * 1.5);
+                } else {
+                    this.expandFacilitySlots();
+                }
+            }
+        }
+        
+        if (built > 0) {
+            this.showClickEffect(`Auto-built ${built} facilities!`, window.innerWidth / 2, 200);
+            this.updateProduction();
             this.updateDisplay();
+            this.renderFacilityGrid();
             this.renderShop();
-            this.renderUpgrades();
-            this.renderAscensionSystem();
-            this.checkAchievements();
-        }, 1000);
+        }
+    }
+    
+    massUpgradeFacilities() {
+        let upgraded = 0;
+        
+        Object.keys(this.upgradeTypes).forEach(upgradeType => {
+            if (this.tryBuyUpgrade(upgradeType)) {
+                upgraded++;
+            }
+        });
+        
+        if (upgraded > 0) {
+            this.showClickEffect(`Mass upgraded ${upgraded} systems!`, window.innerWidth / 2, 150);
+        }
+    }
+    
+    setAchievementFilter(filter) {
+        this.currentAchievementFilter = filter;
+        
+        // Update filter button states
+        const filterButtons = document.querySelectorAll('.filter-button');
+        filterButtons.forEach(button => {
+            button.classList.remove('active');
+            if (button.dataset.filter === filter) {
+                button.classList.add('active');
+            }
+        });
+        
+        this.renderAchievements();
+    }
+    
+    saveSettings() {
+        localStorage.setItem('argentEnergyTycoonSettings', JSON.stringify(this.settings));
+    }
+    
+    loadSettings() {
+        const saved = localStorage.getItem('argentEnergyTycoonSettings');
+        if (saved) {
+            this.settings = Object.assign(this.settings, JSON.parse(saved));
+        }
+    }
+    
+    showNotification(message) {
+        const container = document.getElementById('notification-container');
+        if (!container) return;
+        
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+        
+        container.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
     }
     
     saveGame() {
@@ -2162,6 +2407,27 @@ class ArgentEnergyTycoon {
         return totalSpent;
     }
 }
+
+// Add screen shake animation to the existing keyframes
+const screenShakeCSS = `
+@keyframes screenShake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-5px); }
+    20% { transform: translateX(5px); }
+    30% { transform: translateX(-3px); }
+    40% { transform: translateX(3px); }
+    50% { transform: translateX(-2px); }
+    60% { transform: translateX(2px); }
+    70% { transform: translateX(-1px); }
+    80% { transform: translateX(1px); }
+    90% { transform: translateX(-1px); }
+}
+`;
+
+// Inject the screen shake CSS
+const styleSheet = document.createElement('style');
+styleSheet.textContent = screenShakeCSS;
+document.head.appendChild(styleSheet);
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
