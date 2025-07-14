@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Argent Energy Tycoon - Browser Edition</title>
+    <link rel="stylesheet" href="browser-styles.css">
+    <meta name="description" content="Build your hellish energy empire in this DOOM-inspired tycoon game - Browser Edition">
+    <link rel="icon" href="argent-crystal.png" type="image/png">
+</head>
+<body>
+    <!-- Title Screen -->
+    <div class="title-screen" id="title-screen">
+        <div class="title-screen-content">
+            <div class="hell-background"></div>
+            <div class="title-container">
+                <h1 class="game-title">ARGENT ENERGY TYCOON</h1>
+                <div class="subtitle">BROWSER EDITION</div>
+                <div class="subtitle-secondary">HARNESS THE POWER OF HELL</div>
+                <div class="title-icons">
+                    <img src="argent-crystal.png" alt="Argent Crystal" class="title-icon">
+                    <img src="demon-soul.png" alt="Demon Soul" class="title-icon">
+                    <img src="doom-core.png" alt="Doom Core" class="title-icon">
+                </div>
+            </div>
+            <div class="title-menu">
+                <button class="title-button" id="new-game-btn">NEW GAME</button>
+                <button class="title-button" id="load-game-btn">LOAD GAME</button>
+                <button class="title-button" id="settings-btn">SETTINGS</button>
+            </div>
+            <div class="browser-info">
+                <p>Optimized for Desktop Browsers • Chrome, Firefox, Safari, Edge</p>
+                <p>Use mouse clicks for facility management • Keyboard shortcuts available</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Slot Selection Screen -->
+    <div class="save-slot-screen" id="save-slot-screen">
+        <div class="save-slot-content">
+            <h2 class="save-slot-title">SELECT SAVE SLOT</h2>
+            <div class="save-slots-grid" id="save-slots-container">
+                <!-- Save slots will be generated here -->
+            </div>
+            <button class="back-button" id="back-to-title">BACK TO TITLE</button>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div class="settings-screen" id="settings-screen">
+        <div class="settings-content">
+            <h2 class="settings-title">SETTINGS</h2>
+            <div class="settings-options">
+                <div class="setting-group">
+                    <label for="auto-save">Auto-Save Interval</label>
+                    <select id="auto-save">
+                        <option value="10">10 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">1 minute</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label for="click-effects">Click Effects</label>
+                    <input type="checkbox" id="click-effects" checked>
+                </div>
+                <div class="setting-group">
+                    <label for="sound-effects">Sound Effects</label>
+                    <input type="checkbox" id="sound-effects" checked>
+                </div>
+                <div class="setting-group">
+                    <label for="fullscreen-mode">Fullscreen Mode</label>
+                    <button id="fullscreen-toggle">Toggle Fullscreen</button>
+                </div>
+            </div>
+            <button class="back-button" id="back-to-title-from-settings">BACK TO TITLE</button>
+        </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div class="game-container" id="game-container" style="display: none;">
+        <header class="header">
+            <div class="header-left">
+                <h1 class="title">ARGENT ENERGY TYCOON</h1>
+                <div class="version-info">Browser Edition v1.0</div>
+            </div>
+            <div class="header-center">
+                <div class="resources">
+                    <div class="resource">
+                        <img src="argent-crystal.png" alt="Argent Energy" class="resource-icon">
+                        <span class="resource-amount" id="argent-amount">0</span>
+                        <span class="resource-label">Energy</span>
+                    </div>
+                    <div class="resource">
+                        <img src="demon-soul.png" alt="Demon Souls" class="resource-icon">
+                        <span class="resource-amount" id="souls-amount">0</span>
+                        <span class="resource-label">Souls</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-button" id="save-button">SAVE GAME</button>
+                <button class="header-button" id="menu-button">MENU</button>
+            </div>
+        </header>
+
+        <div class="game-layout">
+            <!-- Left Sidebar -->
+            <aside class="left-sidebar">
+                <div class="sidebar-section">
+                    <h3>FACILITY STATUS</h3>
+                    <div class="stat">
+                        <span>Energy/sec:</span>
+                        <span id="energy-rate">0</span>
+                    </div>
+                    <div class="stat">
+                        <span>Souls/sec:</span>
+                        <span id="souls-rate">0</span>
+                    </div>
+                    <div class="stat">
+                        <span>Total Facilities:</span>
+                        <span id="total-facilities">0</span>
+                    </div>
+                    <div class="stat">
+                        <span>Efficiency:</span>
+                        <span id="efficiency-rate">100%</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>RECENT ACHIEVEMENTS</h3>
+                    <div id="recent-achievements-list" class="achievements-scroll"></div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <div class="tab-navigation">
+                    <button class="tab-button active" data-tab="facilities-tab">
+                        <img src="facilities-tab-icon.png" alt="Facilities" class="tab-icon">
+                        <span>FACILITIES</span>
+                    </button>
+                    <button class="tab-button" data-tab="shop-tab">
+                        <img src="shop-tab-icon.png" alt="Shop" class="tab-icon">
+                        <span>SHOP</span>
+                    </button>
+                    <button class="tab-button" data-tab="upgrades-tab">
+                        <img src="upgrades-tab-icon.png" alt="Upgrades" class="tab-icon">
+                        <span>UPGRADES</span>
+                    </button>
+                    <button class="tab-button" data-tab="achievements-tab">
+                        <img src="achievements-tab-icon.png" alt="Achievements" class="tab-icon">
+                        <span>ACHIEVEMENTS</span>
+                    </button>
+                    <button class="tab-button" data-tab="ascension-tab">
+                        <img src="hell-gate.png" alt="Ascension" class="tab-icon">
+                        <span>ASCENSION</span>
+                    </button>
+                </div>
+
+                <div class="tab-content active" id="facilities-tab">
+                    <div class="facility-grid" id="facility-grid"></div>
+                </div>
+
+                <div class="tab-content" id="shop-tab">
+                    <div class="shop-grid" id="shop-items"></div>
+                </div>
+
+                <div class="tab-content" id="upgrades-tab">
+                    <div class="upgrades-grid" id="upgrades-list"></div>
+                </div>
+
+                <div class="tab-content" id="achievements-tab">
+                    <div class="achievements-container">
+                        <div class="achievements-filters">
+                            <button class="filter-button active" data-filter="all">All</button>
+                            <button class="filter-button" data-filter="completed">Completed</button>
+                            <button class="filter-button" data-filter="incomplete">Incomplete</button>
+                        </div>
+                        <div class="achievements-grid" id="achievements-list"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="ascension-tab">
+                    <div class="ascension-container">
+                        <div class="ascension-header">
+                            <h2>ASCEND TO HIGH RANKS OF HELL</h2>
+                            <div class="current-rank">
+                                <span>Current Rank: </span>
+                                <span id="current-rank-display">Damned Soul</span>
+                            </div>
+                            <div class="ascension-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="ascension-progress-fill"></div>
+                                </div>
+                                <div class="progress-text" id="ascension-progress-text">0 / 1,000,000 Argent Energy Required</div>
+                            </div>
+                        </div>
+                        
+                        <div class="ascension-content">
+                            <div class="ascension-benefits">
+                                <h3>ASCENSION BENEFITS</h3>
+                                <div id="ascension-benefits-list">
+                                    <div class="benefit-item">
+                                        <span>Production Multiplier: </span>
+                                        <span id="production-multiplier">1.00x</span>
+                                    </div>
+                                    <div class="benefit-item">
+                                        <span>Cost Reduction: </span>
+                                        <span id="cost-reduction">0%</span>
+                                    </div>
+                                    <div class="benefit-item">
+                                        <span>Starting Resources: </span>
+                                        <span id="starting-resources">10 Energy, 10 Souls</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ascension-requirements">
+                                <h3>NEXT RANK REQUIREMENTS</h3>
+                                <div id="ascension-requirements-list">
+                                    <div class="requirement-item">
+                                        <span>Total Argent Energy: </span>
+                                        <span id="energy-requirement">1,000,000</span>
+                                    </div>
+                                    <div class="requirement-item">
+                                        <span>Total Demon Souls: </span>
+                                        <span id="souls-requirement">100,000</span>
+                                    </div>
+                                    <div class="requirement-item">
+                                        <span>Facilities Built: </span>
+                                        <span id="facilities-requirement">100</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ascension-action">
+                                <button class="ascension-button" id="ascend-button" disabled>
+                                    <span>ASCEND TO</span>
+                                    <span id="next-rank-name">Lesser Demon</span>
+                                </button>
+                                <div class="ascension-warning">
+                                    Warning: Ascending will reset all progress but grant permanent bonuses!
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="hell-ranks">
+                            <h3>RANKS OF HELL</h3>
+                            <div class="ranks-grid" id="ranks-grid">
+                                <!-- Ranks will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar -->
+            <aside class="right-sidebar">
+                <div class="sidebar-section">
+                    <h3>QUICK ACTIONS</h3>
+                    <button class="quick-action-btn" id="collect-all">Collect All</button>
+                    <button class="quick-action-btn" id="auto-build">Auto Build</button>
+                    <button class="quick-action-btn" id="mass-upgrade">Mass Upgrade</button>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>GAME STATISTICS</h3>
+                    <div class="stat">
+                        <span>Session Time:</span>
+                        <span id="session-time">0:00</span>
+                    </div>
+                    <div class="stat">
+                        <span>Total Clicks:</span>
+                        <span id="total-clicks">0</span>
+                    </div>
+                    <div class="stat">
+                        <span>Achievements:</span>
+                        <span id="achievement-progress">0/632</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>KEYBOARD SHORTCUTS</h3>
+                    <div class="shortcut">
+                        <kbd>F</kbd> - Facilities
+                    </div>
+                    <div class="shortcut">
+                        <kbd>S</kbd> - Shop
+                    </div>
+                    <div class="shortcut">
+                        <kbd>U</kbd> - Upgrades
+                    </div>
+                    <div class="shortcut">
+                        <kbd>A</kbd> - Achievements
+                    </div>
+                    <div class="shortcut">
+                        <kbd>Ctrl+S</kbd> - Save Game
+                    </div>
+                    <div class="shortcut">
+                        <kbd>Space</kbd> - Collect All
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Click Effect -->
+    <div class="click-effect" id="click-effect"></div>
+
+    <!-- Notification System -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <script type="module" src="game.js"></script>
+</body>
+</html>

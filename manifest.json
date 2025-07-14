@@ -1,0 +1,24 @@
+{
+    "name": "Argent Energy Tycoon",
+    "short_name": "Argent Tycoon",
+    "description": "Build your hellish energy empire in this DOOM-inspired tycoon game",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#0a0a0a",
+    "theme_color": "#ff3333",
+    "icons": [
+        {
+            "src": "argent-crystal.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "argent-crystal.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "categories": ["games", "entertainment"],
+    "lang": "en"
+}
