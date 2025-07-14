@@ -1093,7 +1093,15 @@ class ArgentEnergyTycoon {
                 if (titleScreen) {
                     titleScreen.style.display = 'flex';
                 }
+                // Initialize title screen after it's shown
+                this.initTitleScreen();
             }, 1000);
+        } else {
+            // If no intro screen, show title screen directly
+            if (titleScreen) {
+                titleScreen.style.display = 'flex';
+            }
+            this.initTitleScreen();
         }
     }
     
@@ -1119,24 +1127,32 @@ class ArgentEnergyTycoon {
     initTitleScreen() {
         this.setupTitleScreenEvents();
         this.setupSettingsScreen();
-        // Don't show title screen immediately - intro will handle it
     }
     
     setupTitleScreenEvents() {
-        document.getElementById('new-game-btn').addEventListener('click', () => {
-            this.showSaveSlotScreen();
-        });
-        
-        document.getElementById('load-game-btn').addEventListener('click', () => {
-            this.showSaveSlotScreen(true);
-        });
-        
-        document.getElementById('back-to-title').addEventListener('click', () => {
-            this.showTitleScreen();
-        });
-        
-        // Settings button for browser edition
+        const newGameBtn = document.getElementById('new-game-btn');
+        const loadGameBtn = document.getElementById('load-game-btn');
+        const backToTitleBtn = document.getElementById('back-to-title');
         const settingsBtn = document.getElementById('settings-btn');
+        
+        if (newGameBtn) {
+            newGameBtn.addEventListener('click', () => {
+                this.showSaveSlotScreen();
+            });
+        }
+        
+        if (loadGameBtn) {
+            loadGameBtn.addEventListener('click', () => {
+                this.showSaveSlotScreen(true);
+            });
+        }
+        
+        if (backToTitleBtn) {
+            backToTitleBtn.addEventListener('click', () => {
+                this.showTitleScreen();
+            });
+        }
+        
         if (settingsBtn) {
             settingsBtn.addEventListener('click', () => {
                 this.showSettingsScreen();
@@ -2405,6 +2421,249 @@ class ArgentEnergyTycoon {
         });
         
         return totalSpent;
+    }
+    
+    setupAscensionSystem() {
+        // Setup ascension system functionality
+        this.renderAscensionSystem();
+        
+        const ascendButton = document.getElementById('ascend-button');
+        if (ascendButton) {
+            ascendButton.addEventListener('click', () => {
+                this.performAscension();
+            });
+        }
+    }
+    
+    renderAscensionSystem() {
+        // Update current rank display
+        const currentRankDisplay = document.getElementById('current-rank-display');
+        if (currentRankDisplay) {
+            currentRankDisplay.textContent = this.hellRanks[this.ascension.currentRank].name;
+        }
+        
+        // Update ascension progress
+        const nextRankIndex = this.ascension.currentRank + 1;
+        if (nextRankIndex < this.hellRanks.length) {
+            const nextRank = this.hellRanks[nextRankIndex];
+            const progressFill = document.getElementById('ascension-progress-fill');
+            const progressText = document.getElementById('ascension-progress-text');
+            const ascendButton = document.getElementById('ascend-button');
+            const nextRankName = document.getElementById('next-rank-name');
+            
+            if (progressFill && progressText) {
+                const progress = Math.min(100, (this.ascension.totalArgentEverEarned / nextRank.requirements.argent) * 100);
+                progressFill.style.width = progress + '%';
+                progressText.textContent = `${this.formatNumber(this.ascension.totalArgentEverEarned)} / ${this.formatNumber(nextRank.requirements.argent)} Argent Energy Required`;
+            }
+            
+            if (nextRankName) {
+                nextRankName.textContent = nextRank.name;
+            }
+            
+            // Check if ascension is possible
+            const canAscend = this.ascension.totalArgentEverEarned >= nextRank.requirements.argent &&
+                             this.ascension.totalSoulsEverEarned >= nextRank.requirements.souls &&
+                             this.ascension.totalFacilitiesBuilt >= nextRank.requirements.facilities;
+            
+            if (ascendButton) {
+                ascendButton.disabled = !canAscend;
+            }
+        }
+        
+        // Update benefits display
+        const productionMultiplier = document.getElementById('production-multiplier');
+        const costReduction = document.getElementById('cost-reduction');
+        const startingResources = document.getElementById('starting-resources');
+        
+        if (productionMultiplier) {
+            productionMultiplier.textContent = this.ascension.permanentBonuses.productionMultiplier.toFixed(2) + 'x';
+        }
+        if (costReduction) {
+            costReduction.textContent = this.ascension.permanentBonuses.costReduction + '%';
+        }
+        if (startingResources) {
+            startingResources.textContent = `${this.ascension.permanentBonuses.startingResources.argent} Energy, ${this.ascension.permanentBonuses.startingResources.souls} Souls`;
+        }
+        
+        // Render hell ranks
+        this.renderHellRanks();
+    }
+    
+    renderHellRanks() {
+        const ranksGrid = document.getElementById('ranks-grid');
+        if (!ranksGrid) return;
+        
+        ranksGrid.innerHTML = '';
+        
+        this.hellRanks.forEach((rank, index) => {
+            const rankCard = document.createElement('div');
+            rankCard.className = 'rank-card';
+            
+            if (index === this.ascension.currentRank) {
+                rankCard.classList.add('current');
+            } else if (index < this.ascension.currentRank) {
+                rankCard.classList.add('achieved');
+            } else {
+                rankCard.classList.add('locked');
+            }
+            
+            rankCard.innerHTML = `
+                <div class="rank-number">${index + 1}</div>
+                <div class="rank-name">${rank.name}</div>
+                <div class="rank-requirements">
+                    ${this.formatNumber(rank.requirements.argent)} Energy<br>
+                    ${this.formatNumber(rank.requirements.souls)} Souls<br>
+                    ${rank.requirements.facilities} Facilities
+                </div>
+                <div class="rank-bonuses">
+                    ${rank.bonuses.productionMultiplier}x Production<br>
+                    ${rank.bonuses.costReduction}% Cost Reduction
+                </div>
+            `;
+            
+            ranksGrid.appendChild(rankCard);
+        });
+    }
+    
+    performAscension() {
+        const nextRankIndex = this.ascension.currentRank + 1;
+        if (nextRankIndex >= this.hellRanks.length) return;
+        
+        const nextRank = this.hellRanks[nextRankIndex];
+        const canAscend = this.ascension.totalArgentEverEarned >= nextRank.requirements.argent &&
+                         this.ascension.totalSoulsEverEarned >= nextRank.requirements.souls &&
+                         this.ascension.totalFacilitiesBuilt >= nextRank.requirements.facilities;
+        
+        if (!canAscend) return;
+        
+        // Perform ascension
+        this.ascension.currentRank = nextRankIndex;
+        this.ascension.ascensionCount++;
+        
+        // Update permanent bonuses
+        this.ascension.permanentBonuses.productionMultiplier = nextRank.bonuses.productionMultiplier;
+        this.ascension.permanentBonuses.costReduction = nextRank.bonuses.costReduction;
+        this.ascension.permanentBonuses.startingResources = {
+            argent: nextRank.bonuses.startingArgent,
+            souls: nextRank.bonuses.startingSouls
+        };
+        
+        // Reset progress
+        this.resources.argent = nextRank.bonuses.startingArgent;
+        this.resources.souls = nextRank.bonuses.startingSouls;
+        this.facilities = new Array(this.initialFacilitySlots).fill(null);
+        this.upgrades = {};
+        
+        // Reset facility costs
+        Object.keys(this.facilityTypes).forEach(type => {
+            const baseData = this.getBaseFacilityData(type);
+            this.facilityTypes[type].cost = { ...baseData.cost };
+        });
+        
+        this.updateProduction();
+        this.updateDisplay();
+        this.renderFacilityGrid();
+        this.renderShop();
+        this.renderUpgrades();
+        this.renderAscensionSystem();
+        
+        this.showClickEffect(`Ascended to ${nextRank.name}!`, window.innerWidth / 2, window.innerHeight / 2);
+    }
+    
+    getBaseFacilityData(type) {
+        const baseData = {
+            extractor: {
+                cost: { argent: 10, souls: 0 },
+                production: { argent: 1, souls: 0 }
+            },
+            refinery: {
+                cost: { argent: 50, souls: 5 },
+                production: { argent: 5, souls: 0 }
+            },
+            soulForge: {
+                cost: { argent: 100, souls: 0 },
+                production: { argent: 0, souls: 2 }
+            },
+            portal: {
+                cost: { argent: 200, souls: 20 },
+                production: { argent: 3, souls: 3 }
+            },
+            processor: {
+                cost: { argent: 500, souls: 50 },
+                production: { argent: 15, souls: 5 }
+            },
+            doomCore: {
+                cost: { argent: 1000, souls: 100 },
+                production: { argent: 25, souls: 8 }
+            },
+            demonHarvester: {
+                cost: { argent: 2000, souls: 200 },
+                production: { argent: 10, souls: 20 }
+            },
+            hellGate: {
+                cost: { argent: 5000, souls: 500 },
+                production: { argent: 50, souls: 30 }
+            },
+            argentTower: {
+                cost: { argent: 10000, souls: 1000 },
+                production: { argent: 100, souls: 50 }
+            },
+            voidGenerator: {
+                cost: { argent: 25000, souls: 2500 },
+                production: { argent: 250, souls: 125 }
+            }
+        };
+        
+        return baseData[type];
+    }
+    
+    startGameLoop() {
+        setInterval(() => {
+            // Resource generation
+            this.resources.argent += this.production.argent / 10;
+            this.resources.souls += this.production.souls / 10;
+            
+            // Track total resources for ascension
+            this.ascension.totalArgentEverEarned = Math.max(this.ascension.totalArgentEverEarned, this.resources.argent);
+            this.ascension.totalSoulsEverEarned = Math.max(this.ascension.totalSoulsEverEarned, this.resources.souls);
+            
+            // Check for random upgrades
+            this.checkRandomUpgradeGeneration();
+            
+            // Update display
+            this.updateDisplay();
+            this.renderUpgrades();
+            this.renderAscensionSystem();
+            
+            // Check achievements
+            this.checkAchievements();
+        }, 100);
+    }
+    
+    startSessionTimer() {
+        setInterval(() => {
+            this.playTime += 1000;
+            const sessionTime = Date.now() - this.sessionStartTime;
+            const hours = Math.floor(sessionTime / 3600000);
+            const minutes = Math.floor((sessionTime % 3600000) / 60000);
+            const seconds = Math.floor((sessionTime % 60000) / 1000);
+            
+            const sessionTimeDisplay = document.getElementById('session-time');
+            if (sessionTimeDisplay) {
+                sessionTimeDisplay.textContent = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            const totalClicksDisplay = document.getElementById('total-clicks');
+            if (totalClicksDisplay) {
+                totalClicksDisplay.textContent = this.facilityClicks.toString();
+            }
+            
+            const achievementProgress = document.getElementById('achievement-progress');
+            if (achievementProgress) {
+                achievementProgress.textContent = `${this.achievements.length}/${this.achievementList.length}`;
+            }
+        }, 1000);
     }
 }
 
